@@ -9,6 +9,7 @@ type Transaction struct {
 	Amount float64 `json:"amount"`
 	Status string  `json:"status"`
 	mu     sync.Mutex
+	UserID int
 }
 
 func (t *Transaction) SetStatus(status string) {

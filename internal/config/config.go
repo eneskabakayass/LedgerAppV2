@@ -6,9 +6,9 @@ import (
 )
 
 type Config struct {
-	Port        string `envconfig:"PORT" default:"8080"`
+	Port        string `envconfig:"PORT" default:"3306"`
 	Environment string `envconfig:"ENV" default:"development"`
-	DBURL       string `envconfig:"DATABASE_URL" required:"true"`
+	DBURL       string `envconfig:"DATABASE_URL" required:"root:12345@tcp(db:3306)/ledger_app_db_v2"`
 }
 
 func Load() *Config {

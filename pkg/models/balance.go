@@ -10,6 +10,12 @@ type Balance struct {
 	mu     sync.RWMutex
 }
 
+type Account struct {
+	UserID  int
+	Balance int64
+	mu      sync.RWMutex
+}
+
 func (b *Balance) Deposit(amount float64) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -30,4 +36,16 @@ func (b *Balance) GetBalance() float64 {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return b.Amount
+}
+
+func (a *Account) UpdateBalance(amount int64) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.Balance += amount
+}
+
+func (a *Account) GetBalance() int64 {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.Balance
 }
