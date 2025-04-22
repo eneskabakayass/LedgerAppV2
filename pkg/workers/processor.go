@@ -2,37 +2,34 @@ package workers
 
 import (
 	"LedgerV2/pkg/models"
-	"fmt"
+	"errors"
+	"github.com/rs/zerolog/log"
 	"sync"
-	"sync/atomic"
 )
-
-type Processor struct {
-	TransactionQueue chan *models.Transaction
-	Workers          int
-	Stats            Stats
-	Accounts         map[int]*models.Account
-	Wg               sync.WaitGroup
-}
 
 type Stats struct {
 	Processed uint64
-	Failed    uint64
+}
+
+type Processor struct {
+	Accounts         map[string]*models.Account
+	TransactionQueue chan *models.Transaction
+	Wg               sync.WaitGroup
+	Stats            Stats
 }
 
 func NewProcessor(workerCount int) *Processor {
-	return &Processor{
+	p := &Processor{
+		Accounts:         make(map[string]*models.Account),
 		TransactionQueue: make(chan *models.Transaction, 100),
-		Workers:          workerCount,
-		Accounts:         make(map[int]*models.Account),
 	}
-}
 
-func (p *Processor) Start() {
-	for i := 0; i < p.Workers; i++ {
+	for i := 0; i < workerCount; i++ {
 		p.Wg.Add(1)
 		go StartWorker(p)
 	}
+
+	return p
 }
 
 func (p *Processor) Stop() {
@@ -40,10 +37,43 @@ func (p *Processor) Stop() {
 	p.Wg.Wait()
 }
 
-func (p *Processor) PrintStats() {
-	fmt.Printf("Processing: %d, Failed: %d\n", atomic.LoadUint64(&p.Stats.Processed), atomic.LoadUint64(&p.Stats.Failed))
+func (p *Processor) Deposit(userID string, amount float64) error {
+	acc, exists := p.Accounts[userID]
+	if !exists {
+		acc = &models.Account{UserID: userID}
+		p.Accounts[userID] = acc
+	}
+	acc.UpdateBalance(int64(amount))
+	return nil
 }
 
-func (p *Processor) AddTransaction(tx *models.Transaction) {
-	p.TransactionQueue <- tx
+func (p *Processor) Withdraw(userID string, amount float64) error {
+	acc, exists := p.Accounts[userID]
+	if !exists {
+		return errors.New("account not found")
+	}
+	if acc.Balance < int64(amount) {
+		return errors.New("insufficient funds")
+	}
+	acc.UpdateBalance(-int64(amount))
+	return nil
+}
+
+func (p *Processor) GetBalance(userID string) float64 {
+	acc, exists := p.Accounts[userID]
+	if !exists {
+		return 0
+	}
+	return float64(acc.Balance)
+}
+
+func (p *Processor) Start() {
+	for i := 0; i < len(p.Accounts); i++ {
+		p.Wg.Add(1)
+		go StartWorker(p)
+	}
+}
+
+func (p *Processor) PrintStats() {
+	log.Logger.Println("Processed transactions:", p.Stats.Processed)
 }

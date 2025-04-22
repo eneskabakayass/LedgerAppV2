@@ -11,7 +11,7 @@ type Balance struct {
 }
 
 type Account struct {
-	UserID  int
+	UserID  string
 	Balance int64
 	mu      sync.RWMutex
 }

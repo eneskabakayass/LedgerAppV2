@@ -42,7 +42,7 @@ func StartWithService(port string, txService *services.TransactionService) {
 			tx.ID = strconv.Itoa(int(time.Now().UnixNano()))
 		}
 
-		log.Info().Str("user", strconv.Itoa(tx.UserID)).Int64("amount", int64(tx.Amount)).Msg("Transaction received")
+		log.Info().Str("user", tx.FromUserID).Int64("amount", int64(tx.Amount)).Msg("Transaction received")
 
 		txService.SubmitTransaction(&tx)
 
