@@ -20,7 +20,7 @@ func (h *TransactionHandler) CreditHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	transaction, err := h.Service.Credit("user-id", tx) // TODO: replace user-id
+	transaction, err := h.Service.Credit("user-id", tx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

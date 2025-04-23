@@ -10,7 +10,7 @@ type UserRepository interface {
 	Create(user *models.User) error
 	FindByEmail(email string) (*models.User, error)
 	Save(user *models.User) error
-	FindByUsername(username string) (*models.User, error) // eğer e-posta username gibi kullanılıyorsa
+	FindByUsername(username string) (*models.User, error)
 	FindAll() []*models.User
 	FindByID(id string) (*models.User, error)
 	Delete(id string) error

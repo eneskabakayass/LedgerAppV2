@@ -7,7 +7,7 @@ import (
 	"LedgerV2/pkg/models"
 )
 
-type TransactionService struct { // <-- T büyük harfle!
+type TransactionService struct {
 	store map[string][]models.Transaction
 }
 
@@ -16,8 +16,6 @@ func NewTransactionService() *TransactionService {
 		store: make(map[string][]models.Transaction),
 	}
 }
-
-// Aşağıya metotları ekle (receiver'ı değiştir!):
 
 func (s *TransactionService) Credit(userID string, req models.TransactionRequest) (*models.Transaction, error) {
 	tx := models.Transaction{
