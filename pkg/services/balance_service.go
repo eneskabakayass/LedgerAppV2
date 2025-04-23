@@ -1,34 +1,34 @@
 package services
 
 import (
-	"LedgerV2/pkg/repositories"
+	"LedgerV2/pkg/models"
+	"time"
 )
 
-type BalanceService struct {
-	BalanceRepo repositories.BalanceRepository
-	HistoryRepo repositories.BalanceHistoryRepository
+type balanceService struct{}
+
+var BalanceService = balanceService{}
+
+func (s balanceService) GetCurrentBalance(userID string) (*models.Balance, error) {
+	return &models.Balance{
+		UserID: userID,
+		Amount: 1250.50,
+		Date:   time.Now(),
+	}, nil
 }
 
-func NewBalanceService(balanceRepo repositories.BalanceRepository, historyRepo repositories.BalanceHistoryRepository) *BalanceService {
-	return &BalanceService{BalanceRepo: balanceRepo, HistoryRepo: historyRepo}
+func (s balanceService) GetBalanceHistory(userID string) ([]models.Balance, error) {
+	return []models.Balance{
+		{UserID: userID, Amount: 1000.00, Date: time.Now().AddDate(0, -1, 0)},
+		{UserID: userID, Amount: 1200.00, Date: time.Now().AddDate(0, -2, 0)},
+		{UserID: userID, Amount: 1250.50, Date: time.Now()},
+	}, nil
 }
 
-func (s *BalanceService) Deposit(userID string, amount float64) error {
-	err := s.BalanceRepo.Deposit(userID, amount)
-	if err != nil {
-		return err
-	}
-	return s.HistoryRepo.Record(userID, amount, "deposit")
-}
-
-func (s *BalanceService) Withdraw(userID string, amount float64) error {
-	err := s.BalanceRepo.Withdraw(userID, amount)
-	if err != nil {
-		return err
-	}
-	return s.HistoryRepo.Record(userID, amount, "withdraw")
-}
-
-func (s *BalanceService) GetBalance(userID string) float64 {
-	return s.BalanceRepo.GetBalance(userID)
+func (s balanceService) GetBalanceAtTime(userID string, t time.Time) (*models.Balance, error) {
+	return &models.Balance{
+		UserID: userID,
+		Amount: 1111.11,
+		Date:   t,
+	}, nil
 }

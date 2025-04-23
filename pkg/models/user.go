@@ -13,6 +13,16 @@ type User struct {
 	Role     string `json:"role"`
 }
 
+type RegisterRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UserUpdateRequest struct {
+	Email string `json:"email"`
+	Role  string `json:"role"`
+}
+
 func (u *User) Validate() error {
 	if u.ID == "" {
 		return errors.New("ID is required")

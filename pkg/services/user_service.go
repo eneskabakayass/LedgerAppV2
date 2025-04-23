@@ -1,41 +1,43 @@
 package services
 
 import (
-	"errors"
-
 	"LedgerV2/pkg/models"
 	"LedgerV2/pkg/repositories"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
-	UserRepo repositories.UserRepository
+	Repo repositories.UserRepository
 }
 
 func NewUserService(repo repositories.UserRepository) *UserService {
-	return &UserService{UserRepo: repo}
+	return &UserService{Repo: repo}
 }
 
-func (s *UserService) Register(user *models.User, plainPassword string) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(plainPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	user.Password = string(hashedPassword)
-	return s.UserRepo.Save(user)
+func (s *UserService) GetAllUsers() []*models.User {
+	return s.Repo.FindAll()
 }
 
-func (s *UserService) Authenticate(username, password string) (*models.User, error) {
-	user, err := s.UserRepo.FindByUsername(username)
+func (s *UserService) GetUserByID(id string) (*models.User, error) {
+	return s.Repo.FindByID(id)
+}
+
+func (s *UserService) UpdateUser(id string, data models.UserUpdateRequest) (*models.User, error) {
+	user, err := s.Repo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return nil, errors.New("invalid credentials")
+
+	user.Email = data.Email
+	user.Role = data.Role
+
+	err = s.Repo.Save(user)
+	if err != nil {
+		return nil, err
 	}
+
 	return user, nil
 }
 
-func (s *UserService) Authorize(user *models.User, requiredRole string) bool {
-	return user.Role == requiredRole
+func (s *UserService) DeleteUser(id string) error {
+	return s.Repo.Delete(id)
 }

@@ -9,7 +9,7 @@ func StartWorker(p *Processor) {
 	defer p.Wg.Done()
 
 	for tx := range p.TransactionQueue {
-		userID := tx.FromUserID
+		userID := tx.UserID
 
 		acc, exists := p.Accounts[userID]
 		if !exists {

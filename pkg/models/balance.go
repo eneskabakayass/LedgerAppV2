@@ -3,11 +3,14 @@ package models
 import (
 	"errors"
 	"sync"
+	"time"
 )
 
 type Balance struct {
 	Amount float64
 	mu     sync.RWMutex
+	Date   time.Time `json:"date"`
+	UserID string    `json:"user_id"`
 }
 
 type Account struct {

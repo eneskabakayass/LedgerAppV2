@@ -1,27 +1,21 @@
 package models
 
-import (
-	"sync"
-)
+import "time"
 
 type Transaction struct {
-	ID         string  `json:"id"`
-	FromUserID string  `json:"from_user_id,omitempty"`
-	ToUserID   string  `json:"to_user_id,omitempty"`
-	Amount     float64 `json:"amount"`
-	Type       string  `json:"type"`
-	Status     string  `json:"status"`
-	mu         sync.Mutex
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	Type      string    `json:"type"` // credit, debit, transfer
+	Amount    float64   `json:"amount"`
+	ToUserID  string    `json:"to_user_id,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
-func (t *Transaction) SetStatus(status string) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.Status = status
+type TransactionRequest struct {
+	Amount float64 `json:"amount"`
 }
 
-func (t *Transaction) IsCompleted() bool {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return t.Status == "completed"
+type TransferRequest struct {
+	ToUserID string  `json:"to_user_id"`
+	Amount   float64 `json:"amount"`
 }

@@ -1,47 +1,77 @@
 package services
 
 import (
-	"LedgerV2/pkg/models"
-	"LedgerV2/pkg/repositories"
 	"errors"
+	"time"
+
+	"LedgerV2/pkg/models"
 )
 
-type TransactionService struct {
-	BalanceRepo repositories.BalanceRepository
+type TransactionService struct { // <-- T büyük harfle!
+	store map[string][]models.Transaction
 }
 
-func NewTransactionService(balanceRepo repositories.BalanceRepository) *TransactionService {
-	return &TransactionService{BalanceRepo: balanceRepo}
-}
-
-func (s *TransactionService) Credit(userID string, amount float64) error {
-	return s.BalanceRepo.Deposit(userID, amount)
-}
-
-func (s *TransactionService) Debit(userID string, amount float64) error {
-	return s.BalanceRepo.Withdraw(userID, amount)
-}
-
-func (s *TransactionService) Transfer(fromID, toID string, amount float64) error {
-	if err := s.BalanceRepo.Withdraw(fromID, amount); err != nil {
-		return err
+func NewTransactionService() *TransactionService {
+	return &TransactionService{
+		store: make(map[string][]models.Transaction),
 	}
-	if err := s.BalanceRepo.Deposit(toID, amount); err != nil {
-		_ = s.BalanceRepo.Deposit(fromID, amount)
-		return errors.New("transfer failed, rollback applied")
-	}
-	return nil
 }
 
-func (s *TransactionService) SubmitTransaction(tx *models.Transaction) error {
-	switch tx.Type {
-	case "credit":
-		return s.Credit(tx.ToUserID, tx.Amount)
-	case "debit":
-		return s.Debit(tx.FromUserID, tx.Amount)
-	case "transfer":
-		return s.Transfer(tx.FromUserID, tx.ToUserID, tx.Amount)
-	default:
-		return errors.New("invalid transaction type")
+// Aşağıya metotları ekle (receiver'ı değiştir!):
+
+func (s *TransactionService) Credit(userID string, req models.TransactionRequest) (*models.Transaction, error) {
+	tx := models.Transaction{
+		ID:        generateID(),
+		UserID:    userID,
+		Type:      "credit",
+		Amount:    req.Amount,
+		CreatedAt: time.Now(),
 	}
+	s.store[userID] = append(s.store[userID], tx)
+	return &tx, nil
+}
+
+func (s *TransactionService) Debit(userID string, req models.TransactionRequest) (*models.Transaction, error) {
+	if req.Amount <= 0 {
+		return nil, errors.New("amount must be positive")
+	}
+	tx := models.Transaction{
+		ID:        generateID(),
+		UserID:    userID,
+		Type:      "debit",
+		Amount:    -req.Amount,
+		CreatedAt: time.Now(),
+	}
+	s.store[userID] = append(s.store[userID], tx)
+	return &tx, nil
+}
+
+func (s *TransactionService) Transfer(fromUserID string, req models.TransferRequest) (*models.Transaction, error) {
+	tx := models.Transaction{
+		ID:        generateID(),
+		UserID:    fromUserID,
+		ToUserID:  req.ToUserID,
+		Type:      "transfer",
+		Amount:    -req.Amount,
+		CreatedAt: time.Now(),
+	}
+	s.store[fromUserID] = append(s.store[fromUserID], tx)
+	return &tx, nil
+}
+
+func (s *TransactionService) GetHistory(userID string) ([]models.Transaction, error) {
+	return s.store[userID], nil
+}
+
+func (s *TransactionService) GetByID(userID, id string) (*models.Transaction, error) {
+	for _, tx := range s.store[userID] {
+		if tx.ID == id {
+			return &tx, nil
+		}
+	}
+	return nil, errors.New("transaction not found")
+}
+
+func generateID() string {
+	return time.Now().Format("20060102150405") + "-" + string(time.Now().UnixNano())
 }

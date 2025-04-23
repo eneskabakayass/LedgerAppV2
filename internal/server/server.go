@@ -1,63 +1,36 @@
 package server
 
 import (
-	"LedgerV2/pkg/models"
+	"LedgerV2/internal/http"
+	"LedgerV2/internal/http/handlers"
+	"LedgerV2/pkg/repositories"
 	"LedgerV2/pkg/services"
 	"context"
-	"encoding/json"
-	"errors"
 	"github.com/rs/zerolog/log"
-	"net/http"
+	stdhttp "net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 )
 
 func StartWithService(port string, txService *services.TransactionService) {
-	mux := http.NewServeMux()
+	txHandler := &handlers.TransactionHandler{Service: txService}
+	userService := services.NewUserService(repositories.UserRepo)
+	userHandler := &handlers.UserHandler{Service: userService}
+	router := http.NewRouter(txHandler, userHandler)
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte("Hello Ledger Application"))
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to write response")
-		}
-	})
-
-	mux.HandleFunc("/transactions", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		var tx models.Transaction
-		if err := json.NewDecoder(r.Body).Decode(&tx); err != nil {
-			log.Error().Err(err).Msg("Invalid transaction payload")
-			http.Error(w, "Invalid request", http.StatusBadRequest)
-			return
-		}
-
-		if tx.ID == "" {
-			tx.ID = strconv.Itoa(int(time.Now().UnixNano()))
-		}
-
-		log.Info().Str("user", tx.FromUserID).Int64("amount", int64(tx.Amount)).Msg("Transaction received")
-
-		txService.SubmitTransaction(&tx)
-
-		w.WriteHeader(http.StatusAccepted)
-		_, _ = w.Write([]byte("Transaction received"))
-	})
-
-	srv := &http.Server{
-		Addr:    ":" + port,
-		Handler: mux,
+	srv := &stdhttp.Server{
+		Addr:         ":" + port,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	go func() {
 		log.Info().Msgf("Server started on port %s", port)
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := srv.ListenAndServe(); err != nil && err != stdhttp.ErrServerClosed {
 			log.Fatal().Err(err).Msg("Server error")
 		}
 	}()
@@ -72,8 +45,17 @@ func StartWithService(port string, txService *services.TransactionService) {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Error().Err(err).Msg("The server did not shut down properly")
+		log.Error().Err(err).Msg("Shutdown error")
 	} else {
-		log.Info().Msg("The server was shut down properly")
+		log.Info().Msg("Shutdown complete")
 	}
+}
+
+func securityHeaders(next stdhttp.Handler) stdhttp.Handler {
+	return stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		next.ServeHTTP(w, r)
+	})
 }
