@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"LedgerV2/pkg/events"
 	"LedgerV2/pkg/models"
 )
 
@@ -17,6 +18,8 @@ func NewTransactionService() *TransactionService {
 	}
 }
 
+var EventLog = events.NewEventStore()
+
 func (s *TransactionService) Credit(userID string, req models.TransactionRequest) (*models.Transaction, error) {
 	tx := models.Transaction{
 		ID:        generateID(),
@@ -26,6 +29,9 @@ func (s *TransactionService) Credit(userID string, req models.TransactionRequest
 		CreatedAt: time.Now(),
 	}
 	s.store[userID] = append(s.store[userID], tx)
+	evt := events.NewTransactionCredited(userID, req.Amount)
+	EventLog.Append(evt)
+	EventLog.All()
 	return &tx, nil
 }
 

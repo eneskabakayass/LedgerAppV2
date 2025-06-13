@@ -4,10 +4,12 @@ import (
 	"LedgerV2/internal/config"
 	"LedgerV2/internal/logger"
 	"LedgerV2/internal/server"
+	"LedgerV2/pkg/cache"
 	"LedgerV2/pkg/services"
 	"LedgerV2/pkg/workers"
-	"github.com/joho/godotenv"
 	"log"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -17,6 +19,7 @@ func main() {
 
 	cfg := config.Load()
 	logger.Init(cfg.Environment)
+	cache.InitRedis("localhost:6379")
 
 	processor := workers.NewProcessor(5)
 	processor.Start()

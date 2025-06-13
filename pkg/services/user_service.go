@@ -1,6 +1,7 @@
 package services
 
 import (
+	"LedgerV2/pkg/cache"
 	"LedgerV2/pkg/models"
 	"LedgerV2/pkg/repositories"
 )
@@ -18,6 +19,17 @@ func (s *UserService) GetAllUsers() []*models.User {
 }
 
 func (s *UserService) GetUserByID(id string) (*models.User, error) {
+	if cachedUser, err := cache.GetUserFromCache(id); err == nil {
+		return cachedUser, nil
+	}
+
+	user, err := s.Repo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = cache.SetUserToCache(user)
+
 	return s.Repo.FindByID(id)
 }
 
